@@ -30,6 +30,24 @@ DEFAULT_FONT_PATHS = [
     Path("/System/Library/Fonts/Supplemental/Arial Unicode.ttf"),
     Path("/Library/Fonts/Arial Unicode.ttf"),
 ]
+DEFAULT_LATIN_FONT_PATHS = [
+    Path("/System/Library/Fonts/Supplemental/Arial.ttf"),
+    Path("/System/Library/Fonts/Helvetica.ttc"),
+    Path("/System/Library/Fonts/Supplemental/Avenir Next.ttc"),
+    Path("/Library/Fonts/Arial.ttf"),
+    Path("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"),
+]
+DEFAULT_CAPTION_CN = "我们跃入人海，各有风雨灿烂"
+DEFAULT_CAPTION_EN = "We part like rivers — each to its own storm and dawn."
+DEFAULT_CAPTION_FONT_PATHS = [
+    Path("/System/Library/Fonts/PingFang.ttc"),
+    Path("/System/Library/Fonts/STHeiti Medium.ttc"),
+    Path("/System/Library/Fonts/Supplemental/STHeiti Medium.ttc"),
+    Path("/System/Library/Fonts/Supplemental/Heiti.ttc"),
+    Path("C:/Windows/Fonts/simhei.ttf"),
+    SKILL_DIR / "assets/fonts/SourceHanSerifSC-Heavy.otf",
+    SKILL_DIR / "assets/fonts/SourceHanSerifSC-Regular.otf",
+]
 
 
 def disk(radius: int) -> np.ndarray:
@@ -168,6 +186,32 @@ def pick_font(font_path: str | None = None) -> str:
         if path.exists():
             return str(path)
     raise FileNotFoundError("No usable CJK font found.")
+
+
+def pick_latin_font(font_path: str | None = None) -> str:
+    if font_path:
+        path = Path(font_path).expanduser()
+        if path.exists():
+            return str(path)
+        raise FileNotFoundError(f"Font does not exist: {path}")
+
+    for path in DEFAULT_LATIN_FONT_PATHS:
+        if path.exists():
+            return str(path)
+    return pick_font(None)
+
+
+def pick_caption_font(font_path: str | None = None) -> str:
+    if font_path:
+        path = Path(font_path).expanduser()
+        if path.exists():
+            return str(path)
+        raise FileNotFoundError(f"Font does not exist: {path}")
+
+    for path in DEFAULT_CAPTION_FONT_PATHS:
+        if path.exists():
+            return str(path)
+    return pick_font(None)
 
 
 def hex_to_rgb(color: str) -> tuple[int, int, int]:
@@ -334,6 +378,168 @@ def restore_portrait(original: Image.Image, composed: Image.Image, mask: Image.I
     return Image.composite(portrait, composed.convert("RGBA"), portrait_alpha)
 
 
+def text_width(draw: ImageDraw.ImageDraw, text: str, font: ImageFont.FreeTypeFont) -> int:
+    if not text:
+        return 0
+    bbox = draw.textbbox((0, 0), text, font=font)
+    return bbox[2] - bbox[0]
+
+
+def wrap_text_by_width(draw: ImageDraw.ImageDraw, text: str, font: ImageFont.FreeTypeFont, max_width: int) -> list[str]:
+    if not text:
+        return []
+
+    if " " in text:
+        words = text.split()
+        lines: list[str] = []
+        current = ""
+        for word in words:
+            candidate = word if not current else f"{current} {word}"
+            if text_width(draw, candidate, font) <= max_width:
+                current = candidate
+            else:
+                if current:
+                    lines.append(current)
+                current = word
+        if current:
+            lines.append(current)
+        return lines
+
+    lines = []
+    current = ""
+    for char in text:
+        candidate = current + char
+        if text_width(draw, candidate, font) <= max_width:
+            current = candidate
+        else:
+            if current:
+                lines.append(current)
+            current = char
+    if current:
+        lines.append(current)
+    return lines
+
+
+def fit_font_size(
+    font_path: str,
+    text: str,
+    max_width: int,
+    start_size: int,
+    min_size: int,
+    max_lines: int,
+) -> tuple[ImageFont.FreeTypeFont, list[str]]:
+    probe = Image.new("RGBA", (8, 8), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(probe)
+    for size in range(start_size, min_size - 1, -2):
+        font = ImageFont.truetype(font_path, size)
+        lines = wrap_text_by_width(draw, text, font, max_width)
+        if len(lines) <= max_lines:
+            return font, lines
+
+    font = ImageFont.truetype(font_path, min_size)
+    return font, wrap_text_by_width(draw, text, font, max_width)[:max_lines]
+
+
+def line_height(draw: ImageDraw.ImageDraw, text: str, font: ImageFont.FreeTypeFont) -> int:
+    sample = text or "Ag"
+    bbox = draw.textbbox((0, 0), sample, font=font)
+    return bbox[3] - bbox[1]
+
+
+def load_caption_font(font_path: str, size: int, face_index: int) -> ImageFont.FreeTypeFont:
+    try:
+        return ImageFont.truetype(font_path, size, index=face_index)
+    except TypeError:
+        return ImageFont.truetype(font_path, size)
+    except OSError:
+        return ImageFont.truetype(font_path, size)
+
+
+def fit_caption_font_size(
+    font_path: str,
+    text: str,
+    max_width: int,
+    start_size: int,
+    min_size: int,
+    max_lines: int,
+    face_index: int,
+) -> tuple[ImageFont.FreeTypeFont, list[str]]:
+    probe = Image.new("RGBA", (8, 8), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(probe)
+    for size in range(start_size, min_size - 1, -2):
+        font = load_caption_font(font_path, size, face_index)
+        lines = wrap_text_by_width(draw, text, font, max_width)
+        if len(lines) <= max_lines:
+            return font, lines
+
+    font = load_caption_font(font_path, min_size, face_index)
+    return font, wrap_text_by_width(draw, text, font, max_width)[:max_lines]
+
+
+def append_square_caption(image: Image.Image, args: argparse.Namespace) -> Image.Image:
+    width, height = image.size
+    if args.no_square_caption or height >= width:
+        return image.convert("RGBA")
+
+    footer_height = width - height
+    output = Image.new("RGBA", (width, width), hex_to_rgb(args.caption_bg) + (255,))
+    output.alpha_composite(image.convert("RGBA"), (0, 0))
+
+    draw = ImageDraw.Draw(output)
+    max_text_width = int(width * 0.92)
+    cn_font_path = pick_caption_font(args.caption_font)
+    en_font_path = pick_latin_font(args.caption_latin_font)
+    cn_start = max(34, int(width * args.caption_cn_scale))
+    en_start = max(20, int(width * args.caption_en_scale))
+
+    cn_font, cn_lines = fit_caption_font_size(
+        cn_font_path,
+        args.caption_cn,
+        max_text_width,
+        cn_start,
+        max(20, int(width * 0.03)),
+        args.caption_cn_max_lines,
+        args.caption_font_index,
+    )
+    en_font, en_lines = fit_caption_font_size(
+        en_font_path,
+        args.caption_en,
+        max_text_width,
+        en_start,
+        max(14, int(width * 0.018)),
+        args.caption_en_max_lines,
+        args.caption_latin_font_index,
+    )
+
+    cn_gap = int(footer_height * 0.08)
+    en_gap = int(footer_height * 0.12)
+    cn_heights = [line_height(draw, line, cn_font) for line in cn_lines]
+    en_heights = [line_height(draw, line, en_font) for line in en_lines]
+    total_text_height = sum(cn_heights) + max(0, len(cn_lines) - 1) * cn_gap
+    if en_lines:
+        total_text_height += en_gap + sum(en_heights) + max(0, len(en_lines) - 1) * int(en_gap * 0.55)
+
+    y = height + max(0, (footer_height - total_text_height) // 2) + int(footer_height * args.caption_vertical_bias)
+    y = min(y, height + max(0, footer_height - total_text_height - int(footer_height * 0.08)))
+    primary = hex_to_rgb(args.caption_primary_color) + (255,)
+    secondary = hex_to_rgb(args.caption_secondary_color) + (255,)
+
+    for idx, line in enumerate(cn_lines):
+        x = (width - text_width(draw, line, cn_font)) // 2
+        draw.text((x, y), line, fill=primary, font=cn_font)
+        y += cn_heights[idx] + cn_gap
+
+    if en_lines:
+        y += max(0, en_gap - cn_gap)
+        en_line_gap = int(en_gap * 0.55)
+        for idx, line in enumerate(en_lines):
+            x = (width - text_width(draw, line, en_font)) // 2
+            draw.text((x, y), line, fill=secondary, font=en_font)
+            y += en_heights[idx] + en_line_gap
+
+    return output
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Compose a Nobel-style portrait wordcloud image.")
     parser.add_argument("--portrait", required=True, type=Path, help="Approved Nobel-style portrait image.")
@@ -353,6 +559,21 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--far-blur-scale", type=float, default=0.45)
     parser.add_argument("--far-alpha", type=int, default=62)
     parser.add_argument("--contrast", type=float, default=1.08)
+    parser.add_argument("--caption-cn", default=DEFAULT_CAPTION_CN, help="Chinese caption for the square footer.")
+    parser.add_argument("--caption-en", default=DEFAULT_CAPTION_EN, help="English caption for the square footer.")
+    parser.add_argument("--caption-bg", default="#551D21", help="Footer background color.")
+    parser.add_argument("--caption-primary-color", default="#F1D3A1", help="Chinese caption color.")
+    parser.add_argument("--caption-secondary-color", default="#E4CDC8", help="English caption color.")
+    parser.add_argument("--caption-font", default=None, help="Optional CJK font path for the square footer.")
+    parser.add_argument("--caption-latin-font", default=None, help="Optional Latin font path for the square footer.")
+    parser.add_argument("--caption-font-index", type=int, default=8, help="TTC face index for the CJK caption font.")
+    parser.add_argument("--caption-latin-font-index", type=int, default=0, help="TTC face index for the Latin caption font.")
+    parser.add_argument("--caption-cn-scale", type=float, default=0.06, help="Chinese caption font size relative to image width.")
+    parser.add_argument("--caption-en-scale", type=float, default=0.024, help="English caption font size relative to image width.")
+    parser.add_argument("--caption-cn-max-lines", type=int, default=2)
+    parser.add_argument("--caption-en-max-lines", type=int, default=2)
+    parser.add_argument("--caption-vertical-bias", type=float, default=0.02, help="Move footer text downward relative to vertical center.")
+    parser.add_argument("--no-square-caption", action="store_true", help="Skip the square footer output.")
     return parser.parse_args()
 
 
@@ -377,12 +598,15 @@ def main() -> None:
 
     cloud.save(args.out_dir / "wordcloud_layer.png")
     result.save(args.out_dir / "wordcloud_preview.png")
+    square = append_square_caption(result, args)
+    square.save(args.out_dir / "wordcloud_square.png")
 
     print(f"saved: {args.out_dir / 'portrait_mask.png'}")
     print(f"saved: {args.out_dir / 'wordcloud_background_mask.png'}")
     print(f"saved: {args.out_dir / 'portrait_mask_preview.png'}")
     print(f"saved: {args.out_dir / 'wordcloud_layer.png'}")
     print(f"saved: {args.out_dir / 'wordcloud_preview.png'}")
+    print(f"saved: {args.out_dir / 'wordcloud_square.png'}")
 
 
 if __name__ == "__main__":

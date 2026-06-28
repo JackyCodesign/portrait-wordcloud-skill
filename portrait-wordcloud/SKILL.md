@@ -1,13 +1,13 @@
 ---
 name: portrait-wordcloud
-description: Use when the user wants to turn a clear, at-least-half-body real portrait photo plus academic paper text into a Nobel Prize laureate style portrait wordcloud image. This skill guides intake, uses a bundled keyword-extraction prompt, uses a bundled Nobel portrait image prompt, requires confirmation after keyword extraction and after portrait generation, then composes a final image with a protected portrait and layered academic wordcloud background.
+description: Use when the user wants to turn a clear, at-least-half-body real portrait photo plus academic paper text into a Nobel Prize laureate style portrait wordcloud image. This skill guides intake, uses a bundled keyword-extraction prompt, uses a bundled Nobel portrait image prompt, asks for an optional Chinese footer caption, requires confirmation after keyword extraction and after portrait generation, then composes a protected portrait wordcloud with a 1:1 square caption layout.
 ---
 
 # Portrait Wordcloud
 
 ## Overview
 
-Create a Nobel Prize style academic portrait wordcloud from a clear real portrait photo that shows at least the upper half of the body, plus academic paper text. The agent should run this as a guided workflow with two mandatory confirmation gates: one after keyword extraction and one after Nobel-style portrait generation.
+Create a Nobel Prize style academic portrait wordcloud from a clear real portrait photo that shows at least the upper half of the body, plus academic paper text. The final deliverable is a 1:1 square image: the horizontal portrait wordcloud remains at its original width, and a bottom caption panel is appended below it. The agent should run this as a guided workflow with two mandatory confirmation gates: one after keyword extraction and one after Nobel-style portrait generation.
 
 ## Operating Mode
 
@@ -16,16 +16,19 @@ Use a stateful intake. Do not ask the user for everything at once when a next co
 Before asking the user to upload a real portrait photo, determine the current agent's image generation/editing capability:
 
 - If the capability is provided by OpenAI and supports the `image2` model, plan to generate the Nobel-style portrait inside the agent with `image2`.
-- If there is no image generation/editing capability, or the available capability is from another provider, tell the user that this workflow recommends OpenAI `image2` for the Nobel-style portrait. Ask the user to generate the Nobel-style portrait with `image2` externally if possible, then upload that generated style image back to the agent. In this path, do not ask for the original real portrait photo unless the user still wants the prompt or needs help preparing the external generation.
+- If OpenAI `image2` is not exposed, tell the user that this workflow recommends OpenAI `image2` for the Nobel-style portrait, then offer two choices before asking for any image:
+  1. Recommended: show the exact Nobel portrait prompt, ask the user to generate the Nobel-style portrait externally with OpenAI `image2`, then upload that generated style image back to the agent.
+  2. Backup: if another image generation/editing tool is available, ask whether the user wants the agent to try that tool once; if no image tool is available, ask the user to upload an already-generated Nobel-style portrait from another source. Explain that this path may be less faithful than `image2`, and the user will still confirm the portrait before composition.
 
 Then continue the intake:
 
 1. If OpenAI `image2` is available and no portrait photo is available, ask for one clear real portrait photo that shows at least the upper half of the body.
-2. If OpenAI `image2` is not available and no approved Nobel-style portrait is available, show the exact Nobel portrait prompt and ask the user to upload the externally generated Nobel-style portrait.
+2. If OpenAI `image2` is not available and no approved Nobel-style portrait is available, offer the recommended external `image2` path and the backup path, then continue according to the user's choice.
 3. If no paper text is available, ask for paper titles, abstracts, body text, or a paper file.
 4. If both approved portrait input and paper text are available, begin keyword extraction immediately.
 5. If the user already provides an approved keyword JSON, skip extraction confirmation only if they explicitly say it is approved.
 6. If the user already provides an approved Nobel-style portrait, skip image generation confirmation only if they explicitly say it is approved.
+7. Before final composition, ask whether the user wants to customize the bottom caption. The user only needs to provide Chinese; translate it into natural English yourself.
 
 Create a working output directory named `portrait-wordcloud-output` unless the user gives a location. Save durable intermediate files there so the workflow can resume.
 
@@ -69,9 +72,10 @@ Preferred path:
 
 Fallback path:
 
-- If no image editing/generation capability is available, or if the available image generation/editing capability is from another provider, tell the user this workflow recommends OpenAI `image2` for the Nobel-style portrait.
-- Show the exact prompt from `references/nobel-portrait-prompt.md`.
-- Ask the user to generate the image externally with `image2` if possible and upload the generated Nobel-style portrait.
+- If OpenAI `image2` is not exposed, tell the user this workflow recommends OpenAI `image2` for the Nobel-style portrait.
+- Offer two choices: recommended external generation with OpenAI `image2`, or a backup path using another available image tool once / uploading an already-generated Nobel-style portrait.
+- Show the exact prompt from `references/nobel-portrait-prompt.md` for the recommended external `image2` path.
+- Continue according to the user's choice, and make clear that the portrait will still need approval before composition.
 - Once uploaded, show it back and ask for approval.
 
 Suggested confirmation prompt:
@@ -108,10 +112,24 @@ Run:
 python3 <skill-dir>/scripts/run_portrait_wordcloud.py \
   --portrait <output-dir>/nobel_portrait.png \
   --keywords-json <output-dir>/keywords.json \
-  --out-dir <output-dir>
+  --out-dir <output-dir> \
+  --caption-cn "<user-approved Chinese caption>" \
+  --caption-en "<agent-translated English caption>"
 ```
 
-Inspect `wordcloud_preview.png` and `portrait_mask_preview.png`.
+If the user does not provide a custom caption, use:
+
+```text
+我们跃入人海，各有风雨灿烂
+```
+
+Translate it as:
+
+```text
+We part like rivers — each to its own storm and dawn.
+```
+
+Inspect `wordcloud_square.png`, `wordcloud_preview.png`, and `portrait_mask_preview.png`.
 
 If words overlap the face, hair, glasses, or shoulders:
 
@@ -128,7 +146,7 @@ If the composition feels unbalanced:
 - Change `--random-state`.
 - Regenerate once or twice, then choose the best preview.
 
-Return the final image path and show the image when the interface supports it.
+Return the final square image path and show the image when the interface supports it.
 
 ## Composition Script
 
@@ -139,6 +157,7 @@ Return the final image path and show the image when the interface supports it.
 - `portrait_mask_preview.png`
 - `wordcloud_layer.png`
 - `wordcloud_preview.png`
+- `wordcloud_square.png`
 
 Useful options:
 
@@ -149,6 +168,10 @@ Useful options:
 - `--portrait-padding 18` increases or decreases protected space around portrait strokes.
 - `--far-blur 0.65` controls background word softness.
 - `--far-alpha 62` controls background word visibility.
+- `--caption-cn` controls the Chinese footer caption.
+- `--caption-en` controls the English footer caption.
+- Footer captions are centered. Chinese uses PingFang-style semibold/heavy typography when available and falls back to Heiti-style fonts; English uses regular weight and should not be bold. The caption block sits slightly below the vertical center of the caption panel.
+- `--no-square-caption` skips the 1:1 footer output.
 
 Use the bundled font at `assets/fonts/SourceHanSerifSC-Regular.otf` unless a better local CJK font is available.
 
@@ -158,7 +181,8 @@ If the workflow is interrupted, resume from the latest approved artifact:
 
 - `keywords.json` means keyword extraction is complete.
 - `nobel_portrait.png` means portrait generation is complete.
-- `wordcloud_preview.png` means composition is complete.
+- `wordcloud_square.png` means the final 1:1 composition is complete.
+- `wordcloud_preview.png` means the horizontal wordcloud exists but the final square caption output may still need to be checked.
 
 Never silently overwrite approved files. Write candidates as `*.candidate.*` and replace the approved file only after user confirmation.
 
@@ -170,7 +194,9 @@ Before finishing, verify:
 - The portrait face, hair, glasses, and shoulders remain clear and are not covered by words.
 - Background words are readable but visually secondary to the portrait and largest keywords.
 - Keywords reflect the confirmed dictionary.
-- The final output is a 4:3 horizontal composition when the generated portrait allows it.
+- The horizontal wordcloud remains 4:3 when the generated portrait allows it.
+- The final output is a 1:1 square image with a bottom caption panel whose width matches the horizontal wordcloud.
+- The bottom caption includes centered Chinese and English text, uses the approved Chinese caption, and the English translation reads naturally.
 
 ## Capability Fallbacks
 
@@ -178,7 +204,7 @@ This skill must remain usable across agents with different tool access.
 
 - Before asking for the original real portrait photo, check whether OpenAI image generation/editing with the `image2` model is available.
 - If OpenAI `image2` is available, generate the Nobel-style portrait inside the agent.
-- If OpenAI `image2` is unavailable, even when another provider's image generation is available, explain that this workflow recommends `image2`, show `references/nobel-portrait-prompt.md`, and ask the user to generate the Nobel-style portrait externally with `image2` if possible, then upload that generated image.
+- If OpenAI `image2` is unavailable, even when another provider's image generation is available, explain that this workflow recommends `image2` and give the user two choices: external `image2` generation with `references/nobel-portrait-prompt.md`, or a backup path using another available image tool once / uploading an already-generated Nobel-style portrait.
 - If the agent cannot process uploaded paper files directly, ask the user to paste the relevant title, abstract, or body text.
 - If the local Python environment lacks required packages (`Pillow`, `numpy`, `scipy`, `wordcloud`), use `scripts/check_environment.py` to print the missing packages and install command. Only run `scripts/check_environment.py --install` after user approval.
 

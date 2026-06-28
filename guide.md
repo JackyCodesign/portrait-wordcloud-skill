@@ -22,9 +22,9 @@ Suggested opening message:
 
 整个过程我会一步步带你做，不会一次性要你准备所有东西。大概会有 4 步：
 1. 先确认我这边能不能直接生成 OpenAI image2 风格图。
-2. 准备人物图：如果我能用 image2，你上传至少半身、脸部清晰的真人照片；如果不能，我会给你提示词，你用 image2 生成好风格图后再传给我。
+2. 准备人物图：如果我能用 image2，你上传至少半身、脸部清晰的真人照片；如果不能，我会给你两个选择：推荐你外部用 image2 生成风格图后传回来，或者走一个备用方案先试。
 3. 你提供论文标题、摘要、正文或论文文件，我提取关键词，并先给你确认。
-4. 你确认人物图和关键词后，我再合成最终词云图。
+4. 你确认人物图和关键词后，我会让你确认底部文案，再合成 1:1 正方形词云图。
 
 我们先从图片生成能力检查开始。
 ```
@@ -93,7 +93,9 @@ Run this as a step-by-step wizard.
 Before asking the user to upload a real portrait photo, determine the current agent's image generation/editing capability:
 
 - If the capability is provided by OpenAI and supports the `image2` model, use `image2` later to generate the Nobel-style portrait inside the agent.
-- If there is no image generation/editing capability, or if the available capability is from another provider, tell the user this workflow recommends OpenAI `image2` for the Nobel-style portrait. Show the exact prompt from `references/nobel-portrait-prompt.md`, ask the user to generate the Nobel-style portrait externally with `image2` if possible, then upload that generated style image back to the agent. Do not ask for the original real portrait photo in this path unless the user still needs help preparing the external generation.
+- If OpenAI `image2` is not exposed, tell the user this workflow recommends `image2` for the Nobel-style portrait and offer two choices before asking for any image:
+  1. Recommended: the agent shows the Nobel portrait prompt, the user generates the Nobel-style portrait externally with OpenAI `image2`, then uploads that generated style image back to the agent.
+  2. Backup: if another image tool is available, the user may choose to let the agent try that tool once; if no image tool is available, the user may upload an already-generated Nobel-style portrait from another source. Explain that this may be less faithful than `image2` and the user will still confirm the portrait before composition.
 
 Suggested message when OpenAI `image2` is available:
 
@@ -104,9 +106,13 @@ Suggested message when OpenAI `image2` is available:
 Suggested message when OpenAI `image2` is not available:
 
 ```text
-我这边暂时不能直接调用 OpenAI image2。为了让最终词云效果更稳定，我建议先用 image2 把真人照片生成一张诺奖风格肖像，再把生成后的风格图发给我。
+我这边暂时没有暴露出 OpenAI image2。为了让最终词云效果更稳定，我更推荐用 image2 先把真人照片生成一张诺奖风格肖像。
 
-没关系，我会把人物图提示词给你。你用支持 image2 的工具生成好之后，把那张生成图上传回来，我就可以继续帮你提取论文关键词并合成词云。
+你可以选一种方式继续：
+1. 推荐：我把人物图提示词给你，你用 OpenAI image2 生成好诺奖风格肖像后，把生成图上传回来。
+2. 备用：如果你愿意，我也可以用当前可用的图像工具先试一次；如果当前没有图像工具，你也可以上传一张已经生成好的诺奖风格肖像图。这个方案效果可能不如 image2，我们会先确认人物图，再进入词云合成。
+
+你想选哪一种？
 ```
 
 ### 2. Ask For Inputs
@@ -114,7 +120,7 @@ Suggested message when OpenAI `image2` is not available:
 Ask for the next missing input only:
 
 1. If OpenAI `image2` is available, a clear real portrait photo that shows at least the upper half of the body.
-2. If OpenAI `image2` is not available, an externally generated and approved Nobel-style portrait image.
+2. If OpenAI `image2` is not available, first ask the user to choose the recommended external `image2` path or the backup path. Then ask for either the externally generated Nobel-style portrait image, or the image needed for the user-approved backup tool attempt.
 3. Paper titles, abstracts, body text, or a paper file.
 
 Use when OpenAI `image2` is available:
@@ -126,7 +132,13 @@ Use when OpenAI `image2` is available:
 Use when OpenAI `image2` is not available:
 
 ```text
-请先上传一张已经用 OpenAI image2 生成好的诺奖风格肖像图。上传后，我会继续让你提供论文标题、摘要、正文或论文文件。
+如果你选择推荐方案，请先上传一张已经用 OpenAI image2 生成好的诺奖风格肖像图。上传后，我会继续让你提供论文标题、摘要、正文或论文文件。
+```
+
+Use after the user chooses the backup path:
+
+```text
+好的，我们走备用方案。请上传你希望尝试处理的人像图，或者直接上传一张已经生成好的诺奖风格肖像图。我会先让你确认人物图效果，确认后才会继续合成词云。
 ```
 
 ### 3. Extract Keywords
@@ -154,12 +166,16 @@ Read `references/nobel-portrait-prompt.md`.
 
 If OpenAI image generation/editing with the `image2` model is available, use the user's photo and the prompt to generate a Nobel Prize style portrait with `image2`.
 
-If OpenAI `image2` is not available, or if only another provider's image generation/editing is available, tell the user:
+If OpenAI `image2` is not available, or if only another provider's image generation/editing is available, give the user the same two choices before generating or asking for an upload:
 
 ```text
-我这边暂时不能直接调用 OpenAI image2。这个流程推荐用 image2 先生成诺奖风格肖像，这样最终词云会更接近预期效果。
+我这边暂时没有暴露出 OpenAI image2。这个流程推荐用 image2 先生成诺奖风格肖像，这样最终词云会更接近预期效果。
 
-下面是人物图提示词。请你用 image2 生成风格图后，把生成结果上传给我；我会继续处理关键词和最终合成。
+你有两个选择：
+1. 推荐：我把人物图提示词给你，你用 OpenAI image2 生成风格图后，把生成结果上传给我。
+2. 备用：如果你愿意，我可以用当前可用的图像工具先试一次；如果当前没有图像工具，你也可以上传一张已经生成好的诺奖风格肖像图。
+
+我们会先确认人物图效果，再继续处理关键词和最终合成。
 ```
 
 Then show the exact Nobel portrait prompt.
@@ -201,7 +217,33 @@ python3 portrait-wordcloud-runtime/scripts/check_environment.py --install
 
 Use `--user` to install into the current user's site-packages, or `--upgrade` when a fresh package version is needed.
 
-### 6. Compose Final Image
+### 6. Ask For Footer Caption
+
+Before composing the final image, ask whether the user wants to customize the bottom caption. The user only needs to provide Chinese. Translate it into natural English yourself and pass both strings to the composition script.
+
+Default Chinese caption:
+
+```text
+我们跃入人海，各有风雨灿烂
+```
+
+Default English translation:
+
+```text
+We part like rivers — each to its own storm and dawn.
+```
+
+Suggested user-facing message:
+
+```text
+最后我会在词云图底部拼接一个深酒红色文案区，把整张图补成 1:1 正方形。底部中英文会居中排版：中文优先用偏粗的苹方，没有苹方就用黑体兜底；英文使用常规字重，不加粗。整体在文案区里垂直居中但稍微靠下。默认文案是：
+
+我们跃入人海，各有风雨灿烂
+
+如果你想换一句，只需要给我中文就好，我会帮你翻译成英文并一起排到图片底部。
+```
+
+### 7. Compose Final Image
 
 Run:
 
@@ -209,7 +251,9 @@ Run:
 python3 portrait-wordcloud-runtime/scripts/run_portrait_wordcloud.py \
   --portrait portrait-wordcloud-output/nobel_portrait.png \
   --keywords-json portrait-wordcloud-output/keywords.json \
-  --out-dir portrait-wordcloud-output
+  --out-dir portrait-wordcloud-output \
+  --caption-cn "<用户确认的中文文案>" \
+  --caption-en "<Agent 翻译后的英文文案>"
 ```
 
 Expected output files:
@@ -218,15 +262,17 @@ Expected output files:
 - `portrait-wordcloud-output/portrait_mask_preview.png`
 - `portrait-wordcloud-output/wordcloud_layer.png`
 - `portrait-wordcloud-output/wordcloud_preview.png`
+- `portrait-wordcloud-output/wordcloud_square.png`
 
-Show `wordcloud_preview.png` to the user when possible.
+Show `wordcloud_square.png` to the user when possible. `wordcloud_preview.png` is the original horizontal image without the footer.
 
 Suggested completion message:
 
 ```text
-做好了，这是最终的人像学术词云图。人物区域我已经做了保护，关键词主要分布在背景里。
+做好了，这是最终的 1:1 人像学术词云图。人物区域我已经做了保护，底部也加上了中英文文案。
 
-最终图片：portrait-wordcloud-output/wordcloud_preview.png
+最终图片：portrait-wordcloud-output/wordcloud_square.png
+横版词云：portrait-wordcloud-output/wordcloud_preview.png
 关键词文件：portrait-wordcloud-output/keywords.json
 人物风格图：portrait-wordcloud-output/nobel_portrait.png
 ```
@@ -237,7 +283,8 @@ Resume from the latest approved file:
 
 - `keywords.json` means keyword extraction is complete.
 - `nobel_portrait.png` means portrait generation is complete.
-- `wordcloud_preview.png` means final composition exists.
+- `wordcloud_square.png` means final 1:1 composition exists.
+- `wordcloud_preview.png` means the horizontal wordcloud composition exists but the square footer may still need to be checked.
 
 Never overwrite approved files silently. Write candidates first and replace approved files only after confirmation.
 
