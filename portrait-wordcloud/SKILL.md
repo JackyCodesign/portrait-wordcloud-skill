@@ -184,6 +184,7 @@ This skill must remain usable across agents with different tool access.
 
 ## User Experience Rules
 
+- Start by briefly explaining what the workflow creates, the main steps, and the two confirmation gates before asking for uploads.
 - Keep the user oriented with one next action at a time.
 - Do not expose implementation details unless the user asks.
 - Do not continue past keyword extraction without confirmation.
