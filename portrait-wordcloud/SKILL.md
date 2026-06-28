@@ -13,11 +13,19 @@ Create a Nobel Prize style academic portrait wordcloud from a clear real portrai
 
 Use a stateful intake. Do not ask the user for everything at once when a next concrete step is obvious.
 
-1. If no portrait photo is available, ask for one clear real portrait photo that shows at least the upper half of the body.
-2. If no paper text is available, ask for paper titles, abstracts, body text, or a paper file.
-3. If both are available, begin keyword extraction immediately.
-4. If the user already provides an approved keyword JSON, skip extraction confirmation only if they explicitly say it is approved.
-5. If the user already provides an approved Nobel-style portrait, skip image generation confirmation only if they explicitly say it is approved.
+Before asking the user to upload a real portrait photo, determine the current agent's image generation/editing capability:
+
+- If the capability is provided by OpenAI and supports the `image2` model, plan to generate the Nobel-style portrait inside the agent with `image2`.
+- If there is no image generation/editing capability, or the available capability is from another provider, tell the user that this workflow recommends OpenAI `image2` for the Nobel-style portrait. Ask the user to generate the Nobel-style portrait with `image2` externally if possible, then upload that generated style image back to the agent. In this path, do not ask for the original real portrait photo unless the user still wants the prompt or needs help preparing the external generation.
+
+Then continue the intake:
+
+1. If OpenAI `image2` is available and no portrait photo is available, ask for one clear real portrait photo that shows at least the upper half of the body.
+2. If OpenAI `image2` is not available and no approved Nobel-style portrait is available, show the exact Nobel portrait prompt and ask the user to upload the externally generated Nobel-style portrait.
+3. If no paper text is available, ask for paper titles, abstracts, body text, or a paper file.
+4. If both approved portrait input and paper text are available, begin keyword extraction immediately.
+5. If the user already provides an approved keyword JSON, skip extraction confirmation only if they explicitly say it is approved.
+6. If the user already provides an approved Nobel-style portrait, skip image generation confirmation only if they explicitly say it is approved.
 
 Create a working output directory named `portrait-wordcloud-output` unless the user gives a location. Save durable intermediate files there so the workflow can resume.
 
@@ -54,16 +62,16 @@ Use `references/nobel-portrait-prompt.md` with the user's clear at-least-half-bo
 
 Preferred path:
 
-- If image2 or an equivalent image editing/generation tool is available, generate the Nobel-style portrait inside the agent.
+- If OpenAI image generation/editing with the `image2` model is available, generate the Nobel-style portrait inside the agent with `image2`.
 - Save the candidate image as `nobel_portrait.candidate.png` or the native image format produced by the tool.
 - Show the generated image to the user.
 - Stop and ask for approval before composition.
 
 Fallback path:
 
-- If no image editing/generation capability is available, tell the user this environment cannot generate the portrait directly.
+- If no image editing/generation capability is available, or if the available image generation/editing capability is from another provider, tell the user this workflow recommends OpenAI `image2` for the Nobel-style portrait.
 - Show the exact prompt from `references/nobel-portrait-prompt.md`.
-- Ask the user to generate the image externally and upload the generated Nobel-style portrait.
+- Ask the user to generate the image externally with `image2` if possible and upload the generated Nobel-style portrait.
 - Once uploaded, show it back and ask for approval.
 
 Suggested confirmation prompt:
@@ -168,8 +176,9 @@ Before finishing, verify:
 
 This skill must remain usable across agents with different tool access.
 
-- If image2 or equivalent image editing is available, generate the Nobel-style portrait inside the agent.
-- If image2 is unavailable, ask the user to generate the Nobel-style portrait externally using `references/nobel-portrait-prompt.md`, then upload that generated image.
+- Before asking for the original real portrait photo, check whether OpenAI image generation/editing with the `image2` model is available.
+- If OpenAI `image2` is available, generate the Nobel-style portrait inside the agent.
+- If OpenAI `image2` is unavailable, even when another provider's image generation is available, explain that this workflow recommends `image2`, show `references/nobel-portrait-prompt.md`, and ask the user to generate the Nobel-style portrait externally with `image2` if possible, then upload that generated image.
 - If the agent cannot process uploaded paper files directly, ask the user to paste the relevant title, abstract, or body text.
 - If the local Python environment lacks required packages (`Pillow`, `numpy`, `scipy`, `wordcloud`), use `scripts/check_environment.py` to print the missing packages and install command. Only run `scripts/check_environment.py --install` after user approval.
 
