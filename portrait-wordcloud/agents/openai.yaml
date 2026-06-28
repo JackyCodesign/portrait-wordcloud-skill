@@ -1,0 +1,7 @@
+interface:
+  display_name: "Portrait Wordcloud"
+  short_description: "Nobel-style academic portrait wordclouds"
+  default_prompt: "Use $portrait-wordcloud as a guided wizard. Start by asking me for the next missing input, then confirm the extracted keywords and Nobel-style portrait before creating the final image."
+
+policy:
+  allow_implicit_invocation: true
