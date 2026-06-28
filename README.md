@@ -1,10 +1,10 @@
 # Portrait Wordcloud Skill
 
-Create Nobel Prize style academic portrait wordclouds from a real portrait photo and academic paper text.
+Create Nobel Prize style academic portrait wordclouds from a clear, at-least-half-body real portrait photo and academic paper text.
 
 This repository contains a Codex skill that guides the user through:
 
-- collecting a real portrait photo
+- collecting a clear real portrait photo that shows at least the upper half of the body
 - extracting academic keywords from paper text
 - generating or obtaining a Nobel-style portrait
 - composing the final protected portrait wordcloud image

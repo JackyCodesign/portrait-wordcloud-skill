@@ -1,19 +1,19 @@
 ---
 name: portrait-wordcloud
-description: Use when the user wants to turn a real portrait photo plus academic paper text into a Nobel Prize laureate style portrait wordcloud image. This skill guides intake, uses a bundled keyword-extraction prompt, uses a bundled Nobel portrait image prompt, requires confirmation after keyword extraction and after portrait generation, then composes a final image with a protected portrait and layered academic wordcloud background.
+description: Use when the user wants to turn a clear, at-least-half-body real portrait photo plus academic paper text into a Nobel Prize laureate style portrait wordcloud image. This skill guides intake, uses a bundled keyword-extraction prompt, uses a bundled Nobel portrait image prompt, requires confirmation after keyword extraction and after portrait generation, then composes a final image with a protected portrait and layered academic wordcloud background.
 ---
 
 # Portrait Wordcloud
 
 ## Overview
 
-Create a Nobel Prize style academic portrait wordcloud from a real portrait photo and academic paper text. The agent should run this as a guided workflow with two mandatory confirmation gates: one after keyword extraction and one after Nobel-style portrait generation.
+Create a Nobel Prize style academic portrait wordcloud from a clear real portrait photo that shows at least the upper half of the body, plus academic paper text. The agent should run this as a guided workflow with two mandatory confirmation gates: one after keyword extraction and one after Nobel-style portrait generation.
 
 ## Operating Mode
 
 Use a stateful intake. Do not ask the user for everything at once when a next concrete step is obvious.
 
-1. If no portrait photo is available, ask for one real portrait photo.
+1. If no portrait photo is available, ask for one clear real portrait photo that shows at least the upper half of the body.
 2. If no paper text is available, ask for paper titles, abstracts, body text, or a paper file.
 3. If both are available, begin keyword extraction immediately.
 4. If the user already provides an approved keyword JSON, skip extraction confirmation only if they explicitly say it is approved.
@@ -50,7 +50,7 @@ After approval, save the final dictionary as `keywords.json`.
 
 ### 2. Nobel-Style Portrait
 
-Use `references/nobel-portrait-prompt.md` with the user's real portrait photo.
+Use `references/nobel-portrait-prompt.md` with the user's clear at-least-half-body real portrait photo.
 
 Preferred path:
 

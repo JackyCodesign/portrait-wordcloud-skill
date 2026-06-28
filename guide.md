@@ -9,7 +9,7 @@ metadata:
 
 # Portrait Wordcloud Bootstrap Guide
 
-You are helping the user create a Nobel Prize style academic portrait wordcloud from a real portrait photo and paper text.
+You are helping the user create a Nobel Prize style academic portrait wordcloud from a clear real portrait photo that shows at least the upper half of the body, plus paper text.
 
 Follow this guide as an executable task plan. If the current agent supports Codex skills, install the skill. If not, run the workflow directly from this guide and the linked resources.
 
@@ -39,7 +39,7 @@ If the agent can install skills from a GitHub repository path or URL, install `p
 Suggested user-facing message after install:
 
 ```text
-Portrait Wordcloud 已安装。请重启 Codex 或开新线程，然后启动 Portrait Wordcloud 向导。我会依次让你提供真人照片和论文内容。
+Portrait Wordcloud 已安装。请重启 Codex 或开新线程，然后启动 Portrait Wordcloud 向导。我会依次让你提供至少半身、脸部清晰的真人照片和论文内容。
 ```
 
 If skill installation is not available, continue with the direct-run path below.
@@ -76,13 +76,13 @@ Run this as a step-by-step wizard.
 
 Ask for the next missing input only:
 
-1. A real portrait photo.
+1. A clear real portrait photo that shows at least the upper half of the body.
 2. Paper titles, abstracts, body text, or a paper file.
 
 Use:
 
 ```text
-请先上传一张真人照片。之后我会让你提供论文标题、摘要、正文或论文文件。
+请先上传一张至少半身、脸部清晰的真人照片。之后我会让你提供论文标题、摘要、正文或论文文件。
 ```
 
 ### 2. Extract Keywords
